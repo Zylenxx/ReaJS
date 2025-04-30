@@ -49,6 +49,12 @@ desc:MSGS CREATOR
   (no way to swap before noteon yet)
   *+ added memory available to system
 
+    1.03b
+    + software envelope panel now has ADSR
+    + Planning to make a visual part to be able to drag points 
+      to set ADSR manually
+
+    + now mapped ADSR as savable parameters
 */
 options:no_meter gmem=MIDIPARSE
 
@@ -59,17 +65,17 @@ slider1:0<0,128,1>-Gen_Expr
 slider2:0<0,128,1>-Gen_Pan
 slider3:0<0,128,1>-Gen_Mod
 slider4:0<0,128,1>-Gen_Inst
-slider5:0<0,128,1>-Gen_FNS
+slider5:1<0,128,1>-Gen_FNS
 slider6:0<0,128,1>-Gen_ch
 
 //Soft Env tab
 slider7:0<0,255,1>-SE_A
-slider8:0<0,255,1>-SE_D
-slider9:0<0,255,1>-SE_S
-slider10:0<0,255,1>-SE_R
+slider8:0x3f<0,255,1>-SE_D
+slider9:0x3f<0,255,1>-SE_S
+slider10:0x1f<0,255,1>-SE_R
 slider11:0<0,1,1>-SE_gs
 slider12:0<0,1,1>-SE_sp
-
+slider13:1<0,32,1>-SE_zoom
 
 @slider
       //writeback so sliders save states properly.
@@ -89,7 +95,7 @@ slider12:0<0,1,1>-SE_sp
       SE_R=slider10;
       SE_gs=slider11;
       SE_sp=slider12;
-               
+      SE_zoom=slider13;
 @init
 
     //instrument lookup table
@@ -101,9 +107,12 @@ slider12:0<0,1,1>-SE_sp
     
     //ADSR Menus:
       //software envelope
-      SE_A=0;SE_D=0;SE_S=0;SE_R=0;
+      SE_A=0;
+      SE_D=0x3f;
+      SE_S=0x3f;
+      SE_R=0x1f;
       SE_gs=0;SE_sp=0;   
-            
+            SE_zoom=2;
       
     
     // data pointer
@@ -118,7 +127,7 @@ slider12:0<0,1,1>-SE_sp
     d1=0x00; //channel
     fns=0x1; //force no subtype is enabled by default to avoid weird behavior
     t1=gmem[d1*2];//get channel from global storage 
-
+   
 function setGmem(ch,val)(
     gmem[ch*2]!=val?gmem[ch*2]=val
 );
@@ -354,7 +363,7 @@ function setMenu(ctrl,x,y,w,h,get)local(hover)(
 
 // scroll wheel input parsing.
 function processInput(value)(
-  value=value+mouse_wheel/120;
+  value=value+(mouse_wheel/120);
   value
 );
 
@@ -364,40 +373,65 @@ value
 
 //event listener for mouse events. Used to send midi queries later on
 function mouseEvent()(
-mouse_cap||mouse_wheel;
+  mouse_cap||mouse_wheel;
 );
 
 // midi output. yet to finish.
 function setEvent(ctrl,cmd,type)local(lastval)(
-ctrl!=lastval?(
-midisend(0,cmd,type,ctrl);
-getMidi(cmd,type,ctrl);
-lastval=ctrl;
-)
+  ctrl!=lastval?(
+  midisend(0,cmd,type,ctrl);
+  getMidi(cmd,type,ctrl);
+  lastval=ctrl;
+  )
 );
 // midi output but ctrl controls msg2. yet to finish.
 function setEvent2(ctrl,cmd)local(lastval)(
-ctrl!=lastval?(
-midisend(0,cmd,ctrl,0x00);
-getMidi(cmd,ctrl,0x00);
-lastval=ctrl;
-)
+  ctrl!=lastval?(
+  midisend(0,cmd,ctrl,0x00);
+  getMidi(cmd,ctrl,0x00);
+  lastval=ctrl;
+  )
 );
 
 // single value midi output. yet to finish.
 function setEventForced(ctrl,cmd,type,value)local(lastval)(
-ctrl!=lastval?(
-midisend(0,cmd,type,value);
-getMidi(cmd,type,value);
-lastval=ctrl;
-)
+  ctrl!=lastval?(
+  midisend(0,cmd,type,value);
+  getMidi(cmd,type,value);
+  lastval=ctrl;
+  )
 );
 
 /*####################################### GRAPHICAL ITEMS #######################################*/
 
 // Envelope UI
-function gfx_gridBox(x,y,len,wid,menu)local()(
-a
+function gfx_gridBox(x,y,len,wid,menu)local(I,Z,hover)(
+
+  hover=(mouse_x>x)&&(mouse_x<x+len)&&
+      (mouse_y>y)&&(mouse_y<y+wid);
+
+  hover?SE_zoom=max(1,processInput(SE_zoom));
+  setsecondary();
+  gfx_r=gfx_r/2;gfx_g=gfx_g/2;gfx_b=gfx_b/2;
+  gfx_gradrect(x,y,len,wid,0,0,0,0.1,0,0,0,0,gfx_r*1/wid,gfx_g*1/wid,gfx_b*1/wid,1/wid);
+  gfx_set(0,0,0,1);
+  gfx_line(x,y,x+len,y);
+  gfx_line(x+len,y,x+len,y+wid);
+  gfx_line(x,y,x,y+wid);
+  gfx_line(x,y+wid,x+len,y+wid);
+  gfx_line(x,y+wid+1,x+len,y+wid+1);
+  I=0;Z=32/SE_zoom;
+  loop(Z,
+    (I)%8>3?(
+        gfx_set(0,0,0,0.3);
+        gfx_rect(x+len*I/Z,y,(len/Z)+1,wid)
+      );
+    gfx_set(0,0,0,0.1+((I+1)%2)*0.2);gfx_line(x+len*I/Z,y,x+len*I/Z,y+wid-1);
+    gfx_set(0,0,0,0.1);gfx_line(1+x+len*I/Z,y,1+x+len*I/Z,y+wid-1);
+    gfx_set(0,0,0,0.1);gfx_line(-1+x+len*I/Z,y,-1+x+len*I/Z,y+wid-1);
+    I+=1
+  )
+
 );
 
 // slider ui
@@ -567,6 +601,7 @@ function gfx_wheel(x,y,sz,steps,rmin,rmax,send,name,default,ctrl)local(I,A,lastx
     A=lerp(-323,-42,I);
     I>((send-1)/rmax)?gfx_set(1,1,1,1);
     gfx_line(x+sz*1.20*sinD(A),y+sz*1.20*cosD(A),x+sz*0.78*sinD(A),y+sz*0.78*cosD(A),1);
+    
     I+=send/rmax*1/(sz*8);
   );
   
@@ -742,9 +777,27 @@ Tick==0?(
           gfx_x=20;gfx_y=20;gfx_printf("Software Envelope");
           gfx_line(160,22,gfx_w-5,22);
           setsecondaryhover();
+          gfx_r=gfx_r*1.2;gfx_g=gfx_g*1.2;gfx_b=gfx_b*1.2;
           gfx_rect(5,60,gfx_w-10,gfx_h-95);
+          
           setsecondary();
-          gfx_gridBox(5+4,60+4,gfx_w-10-8,gfx_h-95-8-20,"No Menu Items yet!"); 
-          SE_A=0;SE_D=0;SE_S=0;SE_R=0;
-          SE_gs=0;SE_sp=0;         
+          gfx_gridBox(9,64,gfx_w-18,gfx_h-153,"No Menu Items yet!"); 
+          
+          SE_gs=0;SE_sp=0;  
+          controlX=gfx_w*2/12;controlY=gfx_h-60;
+          SE_A=gfx_wheel(controlX,controlY,15,0x7f,0x00,0x7f,SE_A,"A",0x00,0);
+          slider7=SE_A;
+          controlX+=gfx_w*2.66/12;
+          SE_D=gfx_wheel(controlX,controlY,15,0x7f,0x00,0x7f,SE_D,"D",0x3f,0);
+          slider8=SE_D;
+          controlX+=gfx_w*2.66/12;
+          SE_S=gfx_wheel(controlX,controlY,15,0x7f,0x00,0x7f,SE_S,"S",0x3f,0);
+          slider9=SE_S;
+          controlX+=gfx_w*2.66/12;
+          SE_R=gfx_wheel(controlX,controlY,15,0x7f,0x00,0x7f,SE_R,"R",0x1f,0);
+          slider10=SE_R;
+          
+          //Menu goes on the left lower side, itll be a single button
+          
+          mouse_wheel=0;//clear after use;        
     );
