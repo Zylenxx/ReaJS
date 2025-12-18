@@ -4,8 +4,7 @@ ____
 #### NES DPCM Filter
 This is a plugin that emulates the usage of the DPCM driver found in the Ricoh 2A03.
 
-<sup>This might create high pitched ringing. It is recommended to run this with a bandpass at the resonant frequency.</sup>
-![image](https://github.com/user-attachments/assets/b73fe820-62db-4b34-a0d7-50d2237ae79b)
+Fixed the high pitched ringing with some very crude checks. This may affect playback of quiet samples!
 
 ____
 #### Toms Midi Display (WIP - will be worked on after the Driver file is done!)
