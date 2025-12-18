@@ -1,15 +1,6 @@
 desc: Tom's Midi Display
 slider1:0<1,1,1{Fixed,Percentage}>Falloff Style;
 slider2:0<0.2,4,0.1>Falloff Multiplier
-/*
-  Credit to Tom's Source Code for the basics, and Reaper for the documentation.
-  This is a work in progress and has not been finished yet.
-
-  - To Do:
-         - Add Expression Display Support
-         - Add Volume/Pitchbend Display
-         - Track Solo'ing, CC Overrides 
-*/
 @init
 slider1=0;
 slider2=1;
@@ -40,6 +31,8 @@ r5=255/255; g5=255/255; b5=255/255; //Midi FG Low
 MIDIINSTRUMENTS=100000;
 MIDINOTES=200000;
 VISNOTES =300000;
+EXPR1    =400000;
+EXPR2    =450000;
 // - - - - - - - - - Function Start - - - - - - - - - - - - - - - - //
 
 //clamped lerp function
@@ -47,8 +40,6 @@ function lerp(a,vmin,vmax)(
 vmin*1-(max(0,min(1,a)))+
 vmax*(max(0,min(1,a)));
 );
-
-
 
 //instrument LUT
 function getInstrument(Bank,IsDrums)(
@@ -198,11 +189,91 @@ function getInstrument(Bank,IsDrums)(
   Output
 );
 
+//Controller LUT
+function getContrl(Contrl)(
+ Output="none"; //default
+ Contrl==0?Output="Bank Select (MSB)";
+ Contrl==1?Output="Modulation Wheel (MSB)";
+ Contrl==2?Output="Breath Controller (MSB)";
+ Contrl==3?Output="Undefined (MSB)";
+ Contrl==4?Output="Foot Pedal (MSB)";
+ Contrl==5?Output="Portamento Time (MSB)";
+ Contrl==6?Output="Data Entry (MSB)";
+ Contrl==7?Output="Volume (MSB)";
+ Contrl==8?Output="Balance (MSB)";
+ Contrl==9?Output="Undefined (MSB)";
+ Contrl==10?Output="Pan (MSB)";
+ Contrl==11?Output="Expression (MSB)";
+ Contrl==12?Output="FX1";
+ Contrl==13?Output="FX2";
+ (Contrl<13&&Contrl>64)?Output="Undefined (MSB)";
+ Contrl==64?Output="Damper Pedal on/off";
+ Contrl==65?Output="Portamento on/off";
+ Contrl==66?Output="Sostenuto Pedal on/off";
+ Contrl==67?Output="Soft Pedal on/off";
+ Contrl==68?Output="Legato FootSwitch";
+ Contrl==69?Output="Hold 2";
+ Contrl==70?Output="SC1";
+ Contrl==71?Output="SC2";
+ Contrl==72?Output="SC3";
+ Contrl==73?Output="SC4";
+ Contrl==74?Output="SC5";
+ Contrl==75?Output="SC6";
+ Contrl==76?Output="SC7";
+ Contrl==77?Output="SC8";
+ Contrl==78?Output="SC9";
+ Contrl==79?Output="SC10";
+ Contrl==80?Output="Generic";
+ Contrl==81?Output="Generic";
+ Contrl==82?Output="Generic";
+ Contrl==83?Output="Generic";
+ Contrl==84?Output="PortamentoCC";
+ Contrl==85?Output="Undefined (MSB)";
+ Contrl==86?Output="Undefined (MSB)";
+ Contrl==87?Output="Undefined (MSB)";
+ Contrl==88?Output="Vel Prefix";
+ Contrl==89?Output="Undefined (MSB)";
+ Contrl==90?Output="Undefined (MSB)";
+ Contrl==91?Output="FX1 Depth";
+ Contrl==92?Output="FX2 Depth";
+ Contrl==93?Output="FX3 Depth";
+ Contrl==94?Output="FX4 Depth";
+ Contrl==95?Output="FX5 Depth";
+ Contrl==96?Output="(+1) Data Increment";
+ Contrl==97?Output="(-1) Data Decrement";
+ Contrl==98?Output="Non-Registered Parameter Number LSB (NRPN)";
+ Contrl==99?Output="Non-Registered Parameter Number MSB (NRPN)";
+ Contrl==100?Output="Registered Parameter Number LSB (RPN)";
+ Contrl==101?Output="Registered Parameter Number MSB (RPN)";
+ (Contrl<101&&Contrl>120)?Output="Undefined (MSB)";
+ Contrl==120?Output="All Sound Off";
+ Contrl==121?Output="Reset All Controllers";
+ Contrl==122?Output="Local on/off Switch";
+ Contrl==123?Output="All Notes Off";
+ Contrl==124?Output="Omni Off";
+ Contrl==125?Output="Omni On";
+ Contrl==126?Output="Mono";
+ Contrl==127?Output="Poly";
+ //return controller type
+ Output
+);
 //Patch updates, expression updates and UI changes
-function SendUpdate(Type,Value,Channel,Drum)(
+function SendUpdate(Type,Value,Channel,Drum,Extra)(
  Type=="Program"?(
   BUF[MIDIINSTRUMENTS+(Channel*4)]=getInstrument(Value,Drum);
  );
+ Type=="Expression"?(
+ (getContrl(Value)%2)?(
+  BUF[EXPR1+(Channel*4)]=getContrl(Value);//controller name
+  BUF[EXPR1+(Channel*4)+1]=Extra;//controller value
+  ):BUF[EXPR2+(Channel*4)]=getContrl(Value);//controller name
+  BUF[EXPR2+(Channel*4)+1]=Extra;//controller value
+  
+  BUF[EXPR1+(Channel*4)+1]==BUF[EXPR2+(Channel*4)+1]?
+  (BUF[EXPR2+(Channel*4)]=0;
+  BUF[EXPR2+(Channel*4)+1]=0);
+  //doubling fix
+  );
 );
 
 //The main attraction - The midi display.
@@ -243,14 +314,50 @@ function parseInput(Channel,Get,CMD,CMD2)(
         M_Ch=Channel;
         M_Prog=CMD;
         M_Drum=(M_CH==10);
-        SendUpdate("Program",M_Prog,Channel,M_Drum);
+        SendUpdate("Program",M_Prog,Channel,M_Drum,0);
+  );
+  (M_Get==(Channel+0xB0-0x01))?(
+        //if we have Program messages, parse.
+        M_Ch=Channel;
+        M_Prog=CMD;
+        M_VAL=CMD2;
+        M_Drum=(M_CH==10);
+        SendUpdate("Expression",M_Prog,Channel,M_Drum,M_VAL);
   );
 );
 
 
 function AddWindow(index,posx,posy,width,height,text)(
   
-  gfx_set(r1,g1,b1);
+  gfx_set(r1,g1,b1,1);
+  
+  prevx=gfx_x;prevy=gfx_y;
+  
+  gfx_rect(posx,posy,width,height);
+  
+  strlen(text)!=0?(
+  
+    gfx_set(0.05,0.05,0.05);
+    gfx_x=posx+(height/4);
+    gfx_y=posy+(height/4)+2;
+    gfx_printf(text);
+      
+    gfx_set(r2,g2,b2);
+    gfx_x=posx+(height/4);
+    gfx_y=posy+(height/4);
+    gfx_printf(text);
+    
+    gfx_x=prevx;gfx_y=prevy;
+  );
+  Window[index*4]=posx;
+  Window[index*4+1]=posy;
+  Window[index*4+2]=width;
+  Window[index*4+3]=height;
+);
+
+function AddWindowNoFill(index,posx,posy,width,height,text)(
+  
+  gfx_set(r1,g1,b1,0);
   
   prevx=gfx_x;prevy=gfx_y;
   
@@ -306,7 +413,18 @@ function createMidiWindow(id,Channel)(
 
   );
 );
-
+function createExprWindow(id,Channel,Value)(
+  //main window
+  
+  gfx_set(lerp(Value/127,r5,r4),lerp(Value/127,g5,g4),lerp(Value/127,b5,b4),0.4);
+  gfx_rect(
+    Window[id*4]+1,   //xpos
+    Window[id*4+1]+1, //ypos 
+    (Window[id*4+2]-2)*Value/127, //width
+    Window[id*4+3]-2  //height
+  );
+  
+);
 /*
 function updateMidiInfo(id,Channel)(
 INST[Channel]=getInst(Channel);
@@ -335,7 +453,7 @@ INST[Channel]=getInst(Channel);
   );
 
 
-@gfx
+@gfx 500 500 
 
 //falloff rates
 fl_rtperc=min(0.995,lerp(slider2/4,1.04,0.1));
@@ -356,12 +474,20 @@ CH=0;
 loop(16,
 i+=16;
 CH+=1;
-CurInst=BUF[MIDIINSTRUMENTS+(CH*4)];
-AddWindow(1000+i,5,5+(i/16*sp1h),h1,h1,sprintf(#,"%i",CH));
-AddWindow(1001+i,5+h1+sp1w,5+(i/16*sp1h),w1,h1,CurInst);
-AddWindow(1002+i,5+h1+w1+sp1w*2,5+(i/16*sp1h),w2,h1,"");
-AddWindow(1003+i,5+h1+w1+sp1w*3+w2,5+(i/16*sp1h),w2/1.33,h1,"expr1");
-AddWindow(1004+i,5+h1+w1+sp1w*4+w2*1.75,5+(i/16*sp1h),w2/1.33,h1,"expr2");
+
+CurInst=BUF[MIDIINSTRUMENTS+(CH*4)]; //instrument parsers
+
+CurExprN=BUF[EXPR1+((CH)*4)]; // expressions 1
+CurExprV=BUF[EXPR1+(CH*4)+1];
+CurExprN2=BUF[EXPR2+((CH)*4)]; // expresisons 2
+CurExprV2=BUF[EXPR2+(CH*4)+1];
+AddWindow(1000+i,5,5+(i/16*sp1h),h1,h1,sprintf(#,"%i",CH)); //channel number
+AddWindow(1001+i,5+h1+sp1w,5+(i/16*sp1h),w1,h1,CurInst); // instrument name
+AddWindow(1002+i,5+h1+w1+sp1w*2,5+(i/16*sp1h),w2,h1,""); // note display
+AddWindow(1003+i,5+h1+w1+sp1w*3+w2,5+(i/16*sp1h),w2/1.33,h1,CurExprN); // expressions display 1
+AddWindow(1004+i,5+h1+w1+sp1w*4+w2*1.75,5+(i/16*sp1h),w2/1.33,h1,CurExprN2); // expressions display 2
 createMidiWindow(1002+i,CH);
+createExprWindow(1003+i,CH,CurExprV);
+createExprWindow(1004+i,CH,CurExprV2);
 UpdateGUINotes(CH);
 );
