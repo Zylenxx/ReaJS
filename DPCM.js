@@ -1,9 +1,9 @@
-desc: NES APU DPCM Filter
+desc: NES APU DPCM Filter (12khz)
 
 //Please use 44khz internal samplerate for this!
 //This uses an internal samplerate reduction to match the 12000HZ that the NES uses!
 
-slider1:1<1,32,1>DC Removal rate
+slider1:24<1,32,1>DC Removal rate
 slider2:0.01<0.01,1,0.01>Scrollspeed
 slider3:0<0,1,1{False,True}>Freeze
 
@@ -29,20 +29,18 @@ DCOFFSET=0;
 	);
 	function doDPCM(get,value)(
 		//get last sample if possible
-		lasts==value?dither=1:dither=0;
+		(lasts==value)?dither=1:dither=0;
 		//recursive,will output set, should use it as next get at all times.
 		//clamps at minmax of 0000000-FFFFFFF
 		min=0;
 		max=127;
-		dither?ADD=Tick-(Tick==0);
-		get?(value>max?max:value+max(ADD,1);
-			):(value>min?min:value-max(ADD,1);
-			);
+		dither&&isSilent?ADD=Tick-(Tick==0);
+		get?(value>max?max:value+max(ADD,1);):(value>min?min:value-max(ADD,1););
 		);
 	function APU_HandleAudio(Input)(
 		// Input = 0-127 (0000000-FFFFFFF)
 		// => -1=>1 Signed output
-		(Input/64)-1;
+		((Input/64)-1);
 	);
 	function APU_DCRemove(Recursive,rate)(
 		//recursive DC Removal
@@ -55,14 +53,18 @@ DCOFFSET=0;
 
 gfx_clear=-1;
 @sample
+	isSilent=(abs(spl0)<1/4294967291); 
+	// ensure that we have no 32bit noise that can trigger this
+	
+	spl0=max(-1,min(1,spl0));
 	INPUT=downsample();
 	doSampleProcessing?(
 	SGN=DPCMsign(-64+(INPUT)*64,OUTPUT); //get sample
 	OUTPUT=APU_DCRemove(doDPCM(SGN,OUTPUT),S1); // recursive step approaching
 	lasts=OUTPUT;// used for dithering when required
-	spl0=APU_HandleAudio(OUTPUT-(DCOFFSET*2)); // output current step
+	spl0=APU_HandleAudio(OUTPUT-(DCOFFSET*2))*(isSilent==0); // output current step
 	spl1=spl0; //make mono
-	):(spl0=APU_HandleAudio(OUTPUT-(DCOFFSET*2));spl1=spl0);
+	):(spl0=APU_HandleAudio(OUTPUT-(DCOFFSET*2))*(isSilent==0);spl1=spl0);
 	((INDEX<gfx_W)+(1-Freeze))?(
 	INDEX=(INDEX+S2)*(INDEX<gfx_w);
 	BUF[INDEX%gfx_w]=spl0; // for gfx display
