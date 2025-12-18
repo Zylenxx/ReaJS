@@ -10,11 +10,13 @@ This is a plugin that emulates the usage of the DPCM driver found in the Ricoh 2
 ____
 #### Toms Midi Display (WIP - will be worked on after the Driver file is done!)
 This is based on Tom's Midi display (TMIDI) which is a separate executable!
-It shows realtime MIDI inputs and shows the last two controls used per channel.*
+It shows realtime MIDI inputs and shows the last two controls used per channel.
+Finally with full display support!
 
-*<sup>Full functionality is not implemented due to more research in midi parsing.</sup>
+<img width="831" height="640" alt="image" src="https://github.com/user-attachments/assets/4bd47c4b-982f-4c3a-af98-9c12583f29bc" />
 
-![image](https://github.com/user-attachments/assets/a7dde309-60d5-4236-946f-1ee1a8d83bcf)
+
+
 
 ____
 #### ZYL REA-UI MIDI Driver
