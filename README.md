@@ -5,6 +5,8 @@ ____
 This is a plugin that emulates the usage of the DPCM driver found in the Ricoh 2A03.
 
 Fixed the high pitched ringing with some very crude checks. This may affect playback of quiet samples!
+![image](https://github.com/user-attachments/assets/b73fe820-62db-4b34-a0d7-50d2237ae79b)
+
 
 ____
 #### Toms Midi Display (WIP - will be worked on after the Driver file is done!)
