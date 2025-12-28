@@ -22,9 +22,9 @@ sp1h=33;
 
 //window palette
 r1= 32/255; g1= 32/255; b1= 32/255; //BG
-r2= 96/255; g2= 96/255; b2= 96/255; //text
+r2=127/255; g2=127/255; b2=127/255; //text
 r3= 64/255; g3= 64/255; b3= 64/255; //Midi BG
-r4=  0/255; g4=127/255; b4=255/255; //Midi FG High
+r4=  0/255; g4= 96/255; b4=255/255; //Midi FG High
 r5=255/255; g5=255/255; b5=255/255; //Midi FG Low
 
 //Buffer pointers
@@ -33,6 +33,13 @@ MIDINOTES=200000;
 VISNOTES =300000;
 EXPR1    =400000;
 EXPR2    =450000;
+
+//Polyphony variable
+POLY=0;
+
+//Events and bytes variable
+EVPS=0;EPS=0;
+EVPSB=0;BPS=0;
 // - - - - - - - - - Function Start - - - - - - - - - - - - - - - - //
 
 //clamped lerp function
@@ -243,10 +250,10 @@ function getContrl(Contrl)(
  Contrl==95?Output="Phaser Depth";
  Contrl==96?Output="(+1) Data Increment";
  Contrl==97?Output="(-1) Data Decrement";
- Contrl==98?Output="Non-Registered Parameter Number LSB (NRPN)";
- Contrl==99?Output="Non-Registered Parameter Number MSB (NRPN)";
- Contrl==100?Output="Registered Parameter Number LSB (RPN)";
- Contrl==101?Output="Registered Parameter Number MSB (RPN)";
+ Contrl==98?Output="NRPN LSB";
+ Contrl==99?Output="NRPN MSB";
+ Contrl==100?Output="RPN LSB";
+ Contrl==101?Output="RPN MSB";
  (Contrl<101&&Contrl>120)?Output="Undefined (MSB)";
  Contrl==120?Output="All Sound Off";
  Contrl==121?Output="Reset All Controllers";
@@ -256,6 +263,7 @@ function getContrl(Contrl)(
  Contrl==125?Output="Omni On";
  Contrl==126?Output="Mono";
  Contrl==127?Output="Poly";
+ Contrl==0xE0?Output="Pitchbend";
  //return controller type
  Output
 );
@@ -303,6 +311,9 @@ function parseInput(Channel,Get,CMD,CMD2)(
       M_NT=CMD;
       M_Vol=CMD2/127;
       SendToWindow(Channel,M_NT,M_Vol);
+      POLY=min(64,POLY+1);
+      EVPS=EVPS+1;
+      EVPSB=EVPSB+3;
   );
   (M_Get==(Channel+0x80-0x01))?(
       //if we have Note Off messages, parse.
@@ -310,6 +321,9 @@ function parseInput(Channel,Get,CMD,CMD2)(
       M_NT=CMD;
       M_Vol=0;
       SendToWindow(Channel,M_NT,M_Vol);
+      POLY=max(0,POLY-1);
+      EVPS=EVPS+1;
+      EVPSB=EVPSB+3;
   );
   (M_Get==(Channel+0xC0-0x01))?(
         //if we have Program messages, parse.
@@ -317,6 +331,8 @@ function parseInput(Channel,Get,CMD,CMD2)(
         M_Prog=CMD;
         M_Drum=(M_CH==10);
         SendUpdate("Program",M_Prog,Channel,M_Drum,0);
+        EVPS=EVPS+1;
+        EVPSB=EVPSB+2;
   );
   (M_Get==(Channel+0xB0-0x01))?(
         //if we have Program messages, parse.
@@ -325,7 +341,20 @@ function parseInput(Channel,Get,CMD,CMD2)(
         M_VAL=CMD2;
         M_Drum=(M_CH==10);
         SendUpdate("Expression",M_Prog,Channel,M_Drum,M_VAL);
+        EVPS=EVPS+1;
+        EVPSB=EVPSB+3;
   );
+  (M_Get==(Channel+0xE0-0x01))?(
+          //if we have Pitchbend messages, parse.
+          M_Ch=Channel;
+          M_Prog=0xE0;
+          M_VAL=CMD2;//no need to display fine pitchbending
+          M_Drum=(M_CH==10);
+          SendUpdate("Expression",M_Prog,Channel,M_Drum,M_VAL);
+          EVPS=EVPS+1;
+          EVPSB=EVPSB+3;
+    );
+    
 );
 
 
@@ -455,8 +484,10 @@ INST[Channel]=getInst(Channel);
   );
 
 
-@gfx 500 500 
-
+@gfx 500 500
+EVS=(EVS*59/60)+(1/60*EVPS);
+BPS=(BPS*59/60)+(1/60*EVPSB);
+(EVPS=0;EVPSB=0);
 //falloff rates
 fl_rtperc=min(0.995,lerp(slider2/4,1.04,0.1));
 fl_rtfix=0.1*slider2;
@@ -464,6 +495,7 @@ fl_rtfix=0.1*slider2;
 
 
 gfx_setfont(1,"Small Fonts",13);
+gfx_setfont(2,"Liberation Mono",14);
 gfx_w=512;
 gfx_h=512;
 R=12;G=12;B=12;
@@ -476,9 +508,8 @@ CH=0;
 loop(16,
 i+=16;
 CH+=1;
-
+gfx_setfont(1);
 CurInst=BUF[MIDIINSTRUMENTS+(CH*4)]; //instrument parsers
-
 CurExprN=BUF[EXPR1+((CH)*4)]; // expressions 1
 CurExprV=BUF[EXPR1+(CH*4)+1];
 CurExprN2=BUF[EXPR2+((CH)*4)]; // expresisons 2
@@ -491,5 +522,11 @@ AddWindow(1004+i,5+h1+w1+sp1w*4+w2*1.75,5+(i/16*sp1h),w2/1.33,h1,CurExprN2); // 
 createMidiWindow(1002+i,CH);
 createExprWindow(1003+i,CH,CurExprV);
 createExprWindow(1004+i,CH,CurExprV2);
+gfx_setfont(2);
+AddWindow(1100,5,gfx_h+sp1h/2+5,64*6.575,h1,sprintf(#,"Events per second : %06i [%08dB per second]",EVS,BPS));
+AddWindow(1101,5+64*11.6,gfx_h+sp1h/2+5,64,h1,"");
+AddWindow(1103,5+sp1w+64*6.575,gfx_h+sp1h/2+5,64*5,h1,sprintf(#,"Polyphony: %i / 64",POLY));
+createExprWindow(1103,-1,min(127,POLY*2));
+createEXPRWindow(1100,-1,min(127,(EVS/0x1000)*128));
 UpdateGUINotes(CH);
 );
