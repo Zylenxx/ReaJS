@@ -9,7 +9,7 @@ Fixed the high pitched ringing with some very crude checks. This may affect play
 
 
 ____
-#### Toms Midi Display (WIP - will be worked on after the Driver file is done!)
+#### Toms Midi Display 
 This is based on Tom's Midi display (TMIDI) which is a separate executable!
 It shows realtime MIDI inputs and shows the last two controls used per channel.
 Finally with full display support!
@@ -21,7 +21,7 @@ Finally with full display support!
 
 
 ____
-#### ZYL REA-UI MIDI Driver
+#### ZYL REA-UI MIDI Driver (WIP - will be worked on after the Player file is done!)
 This midi driver is meant to facilitate the use of midi composing for users and coders alike.
 This is an answer to DominoMIDI, a plugin that can do extensive manual midi writes.
 With this plugin i am aiming to make it easy to do alot of otherwise patchy events like envelopes and pitch automations.
