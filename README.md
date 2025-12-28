@@ -14,7 +14,8 @@ This is based on Tom's Midi display (TMIDI) which is a separate executable!
 It shows realtime MIDI inputs and shows the last two controls used per channel.
 Finally with full display support!
 
-<img width="831" height="640" alt="image" src="https://github.com/user-attachments/assets/4bd47c4b-982f-4c3a-af98-9c12583f29bc" />
+<img width="819" height="571" alt="image" src="https://github.com/user-attachments/assets/42dd6177-4694-4226-ba10-3e84f2039761" />
+
 
 
 
