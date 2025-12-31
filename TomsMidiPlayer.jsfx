@@ -485,9 +485,9 @@ INST[Channel]=getInst(Channel);
 
 
 @gfx 500 500
-EVS=(EVS*59/60)+(1/60*EVPS);
-BPS=(BPS*59/60)+(1/60*EVPSB);
-(EVPS=0;EVPSB=0);
+EVS=EVPS*22;BPS=EVPSB*22;EVPS=0;EVPSB=0;
+EVS2=EVS2*1/2 + 1/2*EVS;
+BPS2=BPS2*1/2 + 1/2*BPS;
 //falloff rates
 fl_rtperc=min(0.995,lerp(slider2/4,1.04,0.1));
 fl_rtfix=0.1*slider2;
@@ -495,7 +495,7 @@ fl_rtfix=0.1*slider2;
 
 
 gfx_setfont(1,"Small Fonts",13);
-gfx_setfont(2,"Liberation Mono",14);
+gfx_setfont(2,"Liberation Mono",13);
 gfx_w=512;
 gfx_h=512;
 R=12;G=12;B=12;
@@ -523,10 +523,10 @@ createMidiWindow(1002+i,CH);
 createExprWindow(1003+i,CH,CurExprV);
 createExprWindow(1004+i,CH,CurExprV2);
 gfx_setfont(2);
-AddWindow(1100,5,gfx_h+sp1h/2+5,64*6.575,h1,sprintf(#,"Events per second : %06i [%08dB per second]",EVS,BPS));
-AddWindow(1101,5+64*11.6,gfx_h+sp1h/2+5,64,h1,"");
-AddWindow(1103,5+sp1w+64*6.575,gfx_h+sp1h/2+5,64*5,h1,sprintf(#,"Polyphony: %i / 64",POLY));
+AddWindow(1100,5,gfx_h+sp1h/2+8,64*6.575,h1,sprintf(#,"Events per second : %03i %03u  [%03d,%03d,%03d B per second]",floor(EVS2/1000),EVS2%1000,floor(BPS2/100000),floor(BPS2/1000),BPS2%1000));
+AddWindow(1101,5+64*11.6,gfx_h+sp1h/2+8,64,h1,"");
+AddWindow(1103,5+sp1w+64*6.575,gfx_h+sp1h/2+8,64*5,h1,sprintf(#,"Polyphony: %i / 64",POLY));
 createExprWindow(1103,-1,min(127,POLY*2));
-createEXPRWindow(1100,-1,min(127,(EVS/0x1000)*128));
+createEXPRWindow(1100,-1,min(127,(EVS2/0x1000)*128));
 UpdateGUINotes(CH);
 );
