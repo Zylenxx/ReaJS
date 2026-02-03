@@ -30,3 +30,17 @@ This is indirectly responsible for researching the Midi Display mentioned above.
 ![image](https://github.com/user-attachments/assets/64ade577-ffce-4790-8037-42efe4c13450)
 
 ![image](https://github.com/user-attachments/assets/d1e4af54-de04-4678-8184-be21e7d7e90a)
+
+
+
+
+____
+#### ZYLSYNTH
+This is a FM synth meant to be interfaced with a frontent UI. 
+Its purpose is similar to sytrus' FM/PM methods and can use a 4x4 matrix to set up algorythms of various types.
+Currently only I/O is supported.
+
+<img width="600" height="575" alt="image" src="https://github.com/user-attachments/assets/16f1de1d-91b6-4e73-897c-3b27f8a3db86" />
+<img width="463" height="325" alt="image" src="https://github.com/user-attachments/assets/03599cd0-aa39-44cc-b7e9-b0c2d04af873" /> <img width="489" height="302" alt="image" src="https://github.com/user-attachments/assets/88fc3009-d70f-4c40-a1e5-152de859a9a9" />
+
+
