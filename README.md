@@ -36,7 +36,7 @@ This is indirectly responsible for researching the Midi Display mentioned above.
 
 ____
 #### ZYLSYNTH
-This is a FM synth meant to be interfaced with a frontent UI. 
+This is a FM synth meant to be interfaced with a frontend UI. 
 Its purpose is similar to sytrus' FM/PM methods and can use a 4x4 matrix to set up algorythms of various types.
 Currently only I/O is supported.
 
