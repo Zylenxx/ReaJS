@@ -83,7 +83,7 @@ ADSRBank  = 0x00000;
 NoteBank  = 0x80000;
 NState    = 0x81000;
 
-//compiler bank (32 samples width,signed)
+//compiler bank (32 samples width,unsigned)
 CompBank  = 0xF0000;
 
 __=0;
