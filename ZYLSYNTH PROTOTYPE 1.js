@@ -70,6 +70,12 @@ slider48:0<-3,3,1>-DT2
 slider49:0<-3,3,1>-DT3
 slider50:0<-3,3,1>-DT4
 
+slider51:1<1,11,1>-WV1
+slider52:1<1,11,1>-WV2
+slider53:1<1,11,1>-WV3
+slider54:1<1,11,1>-WV4
+
+
 
 @init
 ID=1;
@@ -83,8 +89,11 @@ ADSRBank  = 0x00000;
 NoteBank  = 0x80000;
 NState    = 0x81000;
 
-//compiler bank (32 samples width,unsigned)
+//compiler bank (32 samples width,signed)
 CompBank  = 0xF0000;
+
+//phase bank to compile FM to
+PhaseBank = 0xE0000;
 
 __=0;
   loop(32,
@@ -97,6 +106,61 @@ __=0;
 NOTEON=0x90;
 NOTEOFF=0x80;
 PBEND=0xE0;
+
+
+//waveform banks
+function wv(type,x) local(p,scalar)(
+  scalar=0;
+  output=0;
+  p = (x-floor(x/2)*2)-1;
+  
+  type==1?(
+    scalar=sin(p*$pi)
+  );
+  
+  type==2?(
+    scalar=-p
+  );
+  
+  type==3?(
+    scalar=1+floor(p)*2
+  );
+  
+  type==4?(
+    scalar=abs(p)*2-1
+  );
+  
+  type==5?(
+    scalar=pow(1-(x-floor(x)),4)
+  );
+  
+  type==6?(
+    scalar=floor(p)*sin(-((p*2-floor(p*2)))*$pi)
+  );
+  
+  type==7?(
+    scalar=floor(p)*sin(-((p-floor(p)))*$pi)
+  );
+  
+  type==8?(
+    scalar=pow(sin(0.25*p*$pi-0.25*$pi),4)*sin(2*p*$pi)
+  );
+  
+  type==9?(
+    scalar=pow(sin(0.25*p*$pi-0.25*$pi),8)*cos(p*$pi)
+  );
+  
+  type==10?(
+    scalar=min(1,max(-1,  tan(0.8*cos(p*$pi))  ))
+  );
+  
+  type==11?(
+    scalar=pow(abs(sin(p*$pi)),abs(1-8*p))*2*(floor(p)+0.5)
+  );
+  scalar
+);
+
+
 
 //timer,note,volume
 function allocNote(X,n,v)(
@@ -258,7 +322,7 @@ gfx_printf("Register:");
 gfx_x=30;gfx_y=25+400;
 
 ___=0;
-loop(50,
+loop(54,
   ___+=1;
   gfx_x=30+((___-1)%16)*32;
   gfx_y=425+floor((___-1)/16)*15;
@@ -274,8 +338,8 @@ gfx_set(1,0.4,0,1);
 ___=0;
 loop(4,
   ___+=1;
-  gfx_x=30+((49+___)%16)*32;
-  gfx_y=425+floor((49+___)/16)*15;
+  gfx_x=30+((53+___)%16)*32;
+  gfx_y=425+floor((53+___)/16)*15;
   gfx_a=1-0.7*((0x40*BUF[NoteBank+(___*0x4)]/srate)%0x10)/0x10;
   gfx_printf(sprintf(#,"%03x ",(255*BUF[NoteBank+(___*0x4)]/srate)%0x1000));
 );
@@ -283,8 +347,8 @@ gfx_set(1,0.9,0,1);
 ___=0;
 loop(4,
   ___+=1;
-  gfx_x=30+((53+___)%16)*32;
-  gfx_y=425+floor((53+___)/16)*15;
+  gfx_x=30+((57+___)%16)*32;
+  gfx_y=425+floor((57+___)/16)*15;
   gfx_a=0.3+0.7*((BUF[NoteBank+(___*0x4)+0x1]%12)/12);
   gfx_printf(sprintf(#,"%03x ",(BUF[NoteBank+(___*0x4)+0x1])%0x1000));
 );
@@ -293,8 +357,8 @@ gfx_set(0.5,1,0,1);
 ___=0;
 loop(4,
   ___+=1;
-  gfx_x=30+((57+___)%16)*32;
-  gfx_y=425+floor((57+___)/16)*15;
+  gfx_x=30+((61+___)%16)*32;
+  gfx_y=425+floor((61+___)/16)*15;
   gfx_a=BUF[NoteBank+(___*0x4)+0x2]/128;
   gfx_printf(sprintf(#,"%03x ",(BUF[NoteBank+(___*0x4)+0x2])%0x1000));
 );
@@ -302,8 +366,8 @@ loop(4,
 ___=0;
 loop(4,
   ___+=1;
-  gfx_x=30+((61+___)%16)*32;
-  gfx_y=425+floor((61+___)/16)*15;
+  gfx_x=30+((65+___)%16)*32;
+  gfx_y=425+floor((65+___)/16)*15;
   gfx_set(0.9,0,1,0.3+0.7*BUF[ADSRBank+___]);
   gfx_printf(sprintf(#,"%03x ",(BUF[ADSRBank+___]*255)%0x1000));
 );
@@ -311,13 +375,13 @@ loop(4,
 ___=0;
 loop(4,
   ___+=1;
-  gfx_x=30+((65+___)%16)*32;
-  gfx_y=425+floor((65+___)/16)*15;
+  gfx_x=30+((69+___)%16)*32;
+  gfx_y=425+floor((69+___)/16)*15;
   gfx_set(0.3,1,1,0.3+0.7*BUF[NState+___]);
   gfx_printf(sprintf(#,"%03x ",(BUF[NState+___])%0x1000));
 );
   ___+=1;
-  gfx_x=30+((65+___)%16)*32;
-  gfx_y=425+floor((65+___)/16)*15;
+  gfx_x=30+((69+___)%16)*32;
+  gfx_y=425+floor((69+___)/16)*15;
   gfx_set(1,1,1,1);
   gfx_printf(sprintf(#,"%03x ",ID));
